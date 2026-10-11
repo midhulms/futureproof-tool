@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: FutureProof Retirement Simulation (SAS Job Execution)
+  version: "1.0.0"
+  description: >
+    Runs the FutureProof Monte Carlo retirement engine (20,000 simulated lifetimes
+    using historical US market returns and SSA mortality data) for one person and
+    returns the probability that their savings last, plus a range of outcomes.
+servers:
+  - url: https://viya-3tzzrqm1rj.engage.sas.com
+paths:
+  /SASJobExecution/:
+    get:
+      operationId: run_retirement_simulation
+      summary: Probability that retirement savings last as long as the person lives
+      description: >
+        Use this tool whenever the user asks whether their retirement savings will
+        last, how likely they are to run out of money, what happens if they
+        withdraw more or less, retire earlier or later, or change their stock
+        share. Required: current savings (w0) and yearly withdrawal (wd_amount).
+        Everything else is optional and has a default. Returns the probability of
+        success for the whole lifetime and to age 95, expected age at death,
+        wealth percentiles, the age by which 10% of simulations run out of money,
+        four alternative withdrawal levels (80% to 110% of the chosen amount),
+        the assumptions used, and a disclaimer. Always quote the disclaimer.
+        If the response has status "error", explain the message and ask the user
+        to correct the input.
+      parameters:
+        - name: _program
+          in: query
+          required: true
+          description: >
+            Internal job path. Always send exactly /Public/Mariangela/FPMC_agenticAI_job.
+            Never ask the user for it.
+          schema:
+            type: string
+            enum: ["/Public/Mariangela/FPMC_agenticAI_job"]
+            default: "/Public/Mariangela/FPMC_agenticAI_job"
+        - name: _output_type
+          in: query
+          required: true
+          description: Internal output format. Always send exactly json. Never ask the user for it.
+          schema:
+            type: string
+            enum: ["json"]
+            default: "json"
+        - name: w0
+          in: query
+          required: true
+          description: >
+            Current total retirement savings in US dollars, as a plain number
+            without commas or symbols (example 135600).
+          schema:
+            type: number
+            minimum: 0
+        - name: wd_amount
+          in: query
+          required: true
+          description: >
+            Desired yearly withdrawal once retired, in today's US dollars
+            (inflation-adjusted), as a plain number (example 41000).
+          schema:
+            type: number
+            minimum: 0
+        - name: start_age
+          in: query
+          required: false
+          description: The person's current age in years. Default 40.
+          schema:
+            type: integer
+            default: 40
+            minimum: 18
+            maximum: 100
+        - name: sex
+          in: query
+          required: false
+          description: >
+            F or M. Selects the mortality table used to simulate lifespan. Default F.
+          schema:
+            type: string
+            enum: ["F", "M"]
+            default: "F"
+        - name: ret_age
+          in: query
+          required: false
+          description: Age at which withdrawals begin (retirement age). Default 65.
+          schema:
+            type: integer
+            default: 65
+            minimum: 40
+            maximum: 100
+        - name: eq_w
+          in: query
+          required: false
+          description: >
+            Share of the portfolio invested in stocks (equities) as a number from
+            0 to 1. Example 0.6 means 60 percent stocks. Default 0.6.
+          schema:
+            type: number
+            default: 0.6
+            minimum: 0
+            maximum: 1
+        - name: income
+          in: query
+          required: false
+          description: >
+            Current gross annual income in US dollars, used to estimate yearly
+            savings before retirement. Use 0 if unknown or already retired. Default 0.
+          schema:
+            type: number
+            default: 0
+            minimum: 0
+        - name: contrib
+          in: query
+          required: false
+          description: >
+            Fraction of income saved each year before retirement. Example 0.10
+            means 10 percent. Default 0.10.
+          schema:
+            type: number
+            default: 0.10
+            minimum: 0
+            maximum: 1
+      responses:
+        "200":
+          description: >
+            Simulation result (or an error message). The body is JSON. On success
+            it contains probability of success (lifetime and to age 95), expected
+            age at death, wealth percentiles, the age by which 10 percent of
+            paths run out, four alternative withdrawal levels, assumptions and a
+            disclaimer. On bad input it contains status "error" and a message.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                properties:
+                  status:
+                    type: string
+                    description: Either ok/success-style status or "error" when inputs are missing or invalid.
+                  message:
+                    type: string
+                    description: Present when status is "error". Explains what to fix.

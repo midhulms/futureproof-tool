@@ -3,7 +3,7 @@ info:
   title: FutureProof Retirement Simulation (SAS Job Execution)
   version: "1.0.0"
   description: >
-    Runs the FutureProof Monte Carlo retirement engine (20,000 simulated lifetimes
+    Runs the FutureProof Monte Carlo retirement engine (thousands of simulated lifetimes
     using historical US market returns and SSA mortality data) for one person and
     returns the probability that their savings last, plus a range of outcomes.
 servers:
@@ -137,7 +137,41 @@ paths:
                 properties:
                   status:
                     type: string
-                    description: Either ok/success-style status or "error" when inputs are missing or invalid.
+                    description: '"ok" on success, "error" when inputs are missing or invalid.'
                   message:
                     type: string
                     description: Present when status is "error". Explains what to fix.
+                  inputs:
+                    type: object
+                    additionalProperties: true
+                    description: Echo of the inputs actually used (including nsim and mort_adj).
+                  results:
+                    type: object
+                    description: >
+                      Headline results. Probabilities are fractions from 0 to 1.
+                    properties:
+                      p_success_lifetime: {type: number, description: Probability savings last for life (0 to 1).}
+                      p_success_to_95: {type: number, description: Probability savings last to age 95 (0 to 1).}
+                      expected_age_at_death: {type: number, description: Expected age at death in years.}
+                      wealth_at_retirement_p10: {type: number, description: 10th percentile wealth at retirement in USD.}
+                      wealth_at_retirement_median: {type: number, description: Median wealth at retirement in USD.}
+                      wealth_at_retirement_p90: {type: number, description: 90th percentile wealth at retirement in USD.}
+                      withdrawal_rate_vs_median_wealth: {type: number, description: Yearly withdrawal divided by median wealth at retirement.}
+                      wealth_at_85_p10: {type: number, description: 10th percentile wealth at age 85 in USD.}
+                      wealth_at_85_median: {type: number, description: Median wealth at age 85 in USD.}
+                      wealth_at_95_p10: {type: number, description: 10th percentile wealth at age 95 in USD.}
+                      wealth_at_95_median: {type: number, description: Median wealth at age 95 in USD.}
+                      age_10pct_paths_run_out: {type: number, description: Age by which 10 percent of simulated paths have run out of money.}
+                  alternatives:
+                    type: array
+                    description: Four alternative yearly withdrawals (80, 90, 100 and 110 percent of the chosen amount).
+                    items:
+                      type: object
+                      properties:
+                        wd_amount: {type: number, description: Alternative yearly withdrawal in USD.}
+                        p_success_lifetime: {type: number, description: Probability savings last for life (0 to 1).}
+                        p_success_to_95: {type: number, description: Probability savings last to age 95 (0 to 1).}
+                  assumptions:
+                    description: Assumptions used by the simulation. State them to the user.
+                  disclaimer:
+                    description: Mandatory disclaimer text. Quote it word for word.

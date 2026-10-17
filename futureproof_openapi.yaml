@@ -1,134 +1,263 @@
 openapi: 3.0.3
 info:
   title: FutureProof Retirement Simulation (SAS Job Execution)
-  version: "1.0.0"
-  description: >
-    Runs the FutureProof Monte Carlo retirement engine (thousands of simulated lifetimes
-    using historical US market returns and SSA mortality data) for one person and
-    returns the probability that their savings last, plus a range of outcomes.
+  version: 2.0.0
+  description: Runs the FutureProof Monte Carlo retirement engine for one person and returns the probability
+    that their savings last, plus what-if levers and a retirement-age scan.
 servers:
-  - url: https://viya-3tzzrqm1rj.engage.sas.com
+- url: https://viya-3tzzrqm1rj.engage.sas.com
 paths:
   /SASJobExecution/:
     get:
       operationId: run_retirement_simulation
       summary: Probability that retirement savings last as long as the person lives
-      description: >
-        Use this tool whenever the user asks whether their retirement savings will
-        last, how likely they are to run out of money, what happens if they
-        withdraw more or less, retire earlier or later, or change their stock
-        share. Required: current savings (w0) and yearly withdrawal (wd_amount).
-        Everything else is optional and has a default. Returns the probability of
-        success for the whole lifetime and to age 95, expected age at death,
-        wealth percentiles, the age by which 10% of simulations run out of money,
-        four alternative withdrawal levels (80% to 110% of the chosen amount),
-        the assumptions used, and a disclaimer. Always quote the disclaimer.
-        If the response has status "error", explain the message and ask the user
-        to correct the input.
+      description: 'Use this tool whenever the user asks whether their retirement savings will last, how
+        likely they are to run out of money, what happens if they spend more or less, retire earlier or
+        later, change their stock share or save more. Required: current savings (w0) and yearly spending
+        (wd_amount). Everything else is optional with a default. Returns the probability of success for
+        life and to age 95, expected age at death, wealth percentiles, the age by which 10% of simulations
+        run out, four alternative spending levels, ranked what-if levers (sensitivity), a retirement-age
+        scan from 60 to 70, the earliest retirement age that reaches the target, the assumptions used
+        and a disclaimer. Always state the assumptions and quote the disclaimer. Never invent values for
+        Social Security, pension, job risk, long-term care, shock or tax inputs; leave them out unless
+        the user gives them. If status is error, explain the message and ask the user to correct the input.'
       parameters:
-        - name: _program
-          in: query
-          required: true
-          description: >
-            Internal job path. Always send exactly /Public/Mariangela/FPMC_agenticAI_job.
-            Never ask the user for it.
-          schema:
-            type: string
-            enum: ["/Public/Mariangela/FPMC_agenticAI_job"]
-            default: "/Public/Mariangela/FPMC_agenticAI_job"
-        - name: _output_type
-          in: query
-          required: true
-          description: Internal output format. Always send exactly json. Never ask the user for it.
-          schema:
-            type: string
-            enum: ["json"]
-            default: "json"
-        - name: w0
-          in: query
-          required: true
-          description: >
-            Current total retirement savings in US dollars, as a plain number
-            without commas or symbols (example 135600).
-          schema:
-            type: number
-            minimum: 0
-        - name: wd_amount
-          in: query
-          required: true
-          description: >
-            Desired yearly withdrawal once retired, in today's US dollars
-            (inflation-adjusted), as a plain number (example 41000).
-          schema:
-            type: number
-            minimum: 0
-        - name: start_age
-          in: query
-          required: false
-          description: The person's current age in years. Default 40.
-          schema:
-            type: integer
-            default: 40
-            minimum: 18
-            maximum: 100
-        - name: sex
-          in: query
-          required: false
-          description: >
-            F or M. Selects the mortality table used to simulate lifespan. Default F.
-          schema:
-            type: string
-            enum: ["F", "M"]
-            default: "F"
-        - name: ret_age
-          in: query
-          required: false
-          description: Age at which withdrawals begin (retirement age). Default 65.
-          schema:
-            type: integer
-            default: 65
-            minimum: 40
-            maximum: 100
-        - name: eq_w
-          in: query
-          required: false
-          description: >
-            Share of the portfolio invested in stocks (equities) as a number from
-            0 to 1. Example 0.6 means 60 percent stocks. Default 0.6.
-          schema:
-            type: number
-            default: 0.6
-            minimum: 0
-            maximum: 1
-        - name: income
-          in: query
-          required: false
-          description: >
-            Current gross annual income in US dollars, used to estimate yearly
-            savings before retirement. Use 0 if unknown or already retired. Default 0.
-          schema:
-            type: number
-            default: 0
-            minimum: 0
-        - name: contrib
-          in: query
-          required: false
-          description: >
-            Fraction of income saved each year before retirement. Example 0.10
-            means 10 percent. Default 0.10.
-          schema:
-            type: number
-            default: 0.10
-            minimum: 0
-            maximum: 1
+      - name: _program
+        in: query
+        required: true
+        description: Internal job path. Always send exactly /Public/Mariangela/FPMC_agenticAI_job. Never
+          ask the user for it.
+        schema:
+          type: string
+          enum:
+          - /Public/Mariangela/FPMC_agenticAI_job
+          default: /Public/Mariangela/FPMC_agenticAI_job
+      - name: _output_type
+        in: query
+        required: true
+        description: Internal output format. Always send exactly json. Never ask the user for it.
+        schema:
+          type: string
+          enum:
+          - json
+          default: json
+      - name: w0
+        in: query
+        required: true
+        description: Current total retirement savings in US dollars, plain number without commas or symbols
+          (example 135600).
+        schema:
+          type: number
+          minimum: 0
+      - name: wd_amount
+        in: query
+        required: true
+        description: Desired yearly spending withdrawn in retirement, in today's inflation-adjusted US
+          dollars, plain number (example 41000).
+        schema:
+          type: number
+          minimum: 0
+      - name: start_age
+        in: query
+        required: false
+        description: The person's current age in years. Default 40.
+        schema:
+          type: integer
+          default: 40
+          minimum: 18
+          maximum: 100
+      - name: sex
+        in: query
+        required: false
+        description: F or M. Selects the mortality table. Default F.
+        schema:
+          type: string
+          enum:
+          - F
+          - M
+          default: F
+      - name: ret_age
+        in: query
+        required: false
+        description: Age at which withdrawals begin (retirement age). Default 65.
+        schema:
+          type: integer
+          default: 65
+          minimum: 40
+          maximum: 100
+      - name: eq_w
+        in: query
+        required: false
+        description: Share of the portfolio in stocks (equities), from 0 to 1. Example 0.6 means 60 percent.
+          Default 0.6.
+        schema:
+          type: number
+          default: 0.6
+          minimum: 0
+          maximum: 1
+      - name: income
+        in: query
+        required: false
+        description: Current gross annual income in US dollars, used to estimate yearly savings before
+          retirement. Use 0 if unknown or already retired. Default 0.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+      - name: contrib
+        in: query
+        required: false
+        description: Fraction of income saved each year before retirement. 0.10 means 10 percent. Default
+          0.10.
+        schema:
+          type: number
+          default: 0.1
+          minimum: 0
+          maximum: 1
+      - name: ss_income
+        in: query
+        required: false
+        description: Expected yearly Social Security income in today's US dollars. Default 0 (none). Set
+          only if the user gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+      - name: ss_age
+        in: query
+        required: false
+        description: Age at which Social Security income starts. Default 67.
+        schema:
+          type: integer
+          default: 67
+          minimum: 62
+          maximum: 70
+      - name: other_income
+        in: query
+        required: false
+        description: Other yearly retirement income such as a pension, in today's US dollars. Default
+          0. Set only if the user gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+      - name: other_start
+        in: query
+        required: false
+        description: Age at which the other income starts. Default 65.
+        schema:
+          type: integer
+          default: 65
+          minimum: 18
+          maximum: 110
+      - name: other_end
+        in: query
+        required: false
+        description: Age at which the other income ends. Default 110.
+        schema:
+          type: integer
+          default: 110
+          minimum: 18
+          maximum: 120
+      - name: job_risk
+        in: query
+        required: false
+        description: Chance, from 0 to 1, of being forced to retire early because of job loss. Default
+          0 (off). Set only if the user gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+          maximum: 1
+      - name: job_age
+        in: query
+        required: false
+        description: Age from which the early-retirement job risk applies. Default 55.
+        schema:
+          type: integer
+          default: 55
+          minimum: 18
+          maximum: 100
+      - name: ltc_prob
+        in: query
+        required: false
+        description: Chance, from 0 to 1, of a long-term-care event. Default 0 (off). Set only if the
+          user gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+          maximum: 1
+      - name: ltc_age
+        in: query
+        required: false
+        description: Age at which long-term care could start. Default 75.
+        schema:
+          type: integer
+          default: 75
+          minimum: 40
+          maximum: 110
+      - name: ltc_cost
+        in: query
+        required: false
+        description: Yearly long-term-care cost in today's US dollars. Default 0. Set only if the user
+          gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+      - name: ltc_years
+        in: query
+        required: false
+        description: How many years the long-term-care cost lasts. Default 3.
+        schema:
+          type: integer
+          default: 3
+          minimum: 0
+          maximum: 30
+      - name: shock_prob
+        in: query
+        required: false
+        description: Chance, from 0 to 1, of an unexpected extra spending shock. Default 0 (off). Set
+          only if the user gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+          maximum: 1
+      - name: shock_pct
+        in: query
+        required: false
+        description: Size of the spending shock as a fraction of savings. 0.10 means 10 percent. Default
+          0.10.
+        schema:
+          type: number
+          default: 0.1
+          minimum: 0
+          maximum: 1
+      - name: tax_rate
+        in: query
+        required: false
+        description: Flat effective tax rate on withdrawals, from 0 to 1. Default 0 (no tax). Set only
+          if the user gives a figure; never guess or invent it.
+        schema:
+          type: number
+          default: 0
+          minimum: 0
+          maximum: 1
+      - name: target
+        in: query
+        required: false
+        description: Target probability of success, from 0 to 1, used to find the earliest retirement
+          age that reaches it. Default 0.90.
+        schema:
+          type: number
+          default: 0.9
+          minimum: 0
+          maximum: 1
       responses:
-        "200":
-          description: >
-            Simulation result (or an error message). The body is JSON. On success
-            it contains probability of success (lifetime and to age 95), expected
-            age at death, wealth percentiles, the age by which 10 percent of
-            paths run out, four alternative withdrawal levels, assumptions and a
-            disclaimer. On bad input it contains status "error" and a message.
+        '200':
+          description: Simulation result (or an error message). The body is JSON.
           content:
             application/json:
               schema:
@@ -138,40 +267,119 @@ paths:
                   status:
                     type: string
                     description: '"ok" on success, "error" when inputs are missing or invalid.'
+                  version:
+                    type: string
+                    description: Version of the simulation job.
                   message:
                     type: string
                     description: Present when status is "error". Explains what to fix.
                   inputs:
                     type: object
                     additionalProperties: true
-                    description: Echo of the inputs actually used (including nsim and mort_adj).
+                    description: Echo of every input actually used, including defaults, nsim and mort_adj.
                   results:
                     type: object
-                    description: >
-                      Headline results. Probabilities are fractions from 0 to 1.
+                    description: Headline results. Probabilities are fractions from 0 to 1.
                     properties:
-                      p_success_lifetime: {type: number, description: Probability savings last for life (0 to 1).}
-                      p_success_to_95: {type: number, description: Probability savings last to age 95 (0 to 1).}
-                      expected_age_at_death: {type: number, description: Expected age at death in years.}
-                      wealth_at_retirement_p10: {type: number, description: 10th percentile wealth at retirement in USD.}
-                      wealth_at_retirement_median: {type: number, description: Median wealth at retirement in USD.}
-                      wealth_at_retirement_p90: {type: number, description: 90th percentile wealth at retirement in USD.}
-                      withdrawal_rate_vs_median_wealth: {type: number, description: Yearly withdrawal divided by median wealth at retirement.}
-                      wealth_at_85_p10: {type: number, description: 10th percentile wealth at age 85 in USD.}
-                      wealth_at_85_median: {type: number, description: Median wealth at age 85 in USD.}
-                      wealth_at_95_p10: {type: number, description: 10th percentile wealth at age 95 in USD.}
-                      wealth_at_95_median: {type: number, description: Median wealth at age 95 in USD.}
-                      age_10pct_paths_run_out: {type: number, description: Age by which 10 percent of simulated paths have run out of money.}
+                      p_success_lifetime:
+                        type: number
+                        description: Probability savings last for life (0 to 1). Show as a percentage.
+                      p_success_to_95:
+                        type: number
+                        description: Probability savings last to age 95 (0 to 1). Show as a percentage.
+                      expected_age_at_death:
+                        type: number
+                        description: Expected age at death in years.
+                      wealth_at_retirement_p10:
+                        type: number
+                        description: 10th percentile wealth at retirement, USD.
+                      wealth_at_retirement_median:
+                        type: number
+                        description: Median wealth at retirement, USD.
+                      wealth_at_retirement_p90:
+                        type: number
+                        description: 90th percentile wealth at retirement, USD.
+                      spending_rate_vs_median_wealth:
+                        type: number
+                        description: Yearly spending divided by median wealth at retirement.
+                      wealth_at_85_p10:
+                        type: number
+                        description: 10th percentile wealth at age 85, USD.
+                      wealth_at_85_median:
+                        type: number
+                        description: Median wealth at age 85, USD.
+                      wealth_at_95_p10:
+                        type: number
+                        description: 10th percentile wealth at age 95, USD.
+                      wealth_at_95_median:
+                        type: number
+                        description: Median wealth at age 95, USD.
+                      age_10pct_paths_run_out:
+                        type: number
+                        description: Age by which 10 percent of simulated paths have run out of money.
+                      share_paths_forced_retirement:
+                        type: number
+                        description: Share of paths with forced early retirement (0 to 1); 0 when job
+                          risk is off.
+                      share_paths_ltc_event:
+                        type: number
+                        description: Share of paths with a long-term-care event (0 to 1); 0 when it is
+                          off.
+                      earliest_ret_age_for_target:
+                        type: number
+                        description: Earliest retirement age that reaches the target probability of success.
                   alternatives:
                     type: array
-                    description: Four alternative yearly withdrawals (80, 90, 100 and 110 percent of the chosen amount).
+                    description: Alternative yearly spending levels (80, 90, 100 and 110 percent of the
+                      chosen amount).
                     items:
                       type: object
                       properties:
-                        wd_amount: {type: number, description: Alternative yearly withdrawal in USD.}
-                        p_success_lifetime: {type: number, description: Probability savings last for life (0 to 1).}
-                        p_success_to_95: {type: number, description: Probability savings last to age 95 (0 to 1).}
+                        wd_amount:
+                          type: number
+                          description: Alternative yearly spending, USD.
+                        p_success_lifetime:
+                          type: number
+                          description: Probability savings last for life (0 to 1).
+                        p_success_to_95:
+                          type: number
+                          description: Probability savings last to age 95 (0 to 1).
+                  sensitivity:
+                    type: array
+                    description: What-if levers ranked by effect, each with the new probability and the
+                      change in percentage points.
+                    items:
+                      type: object
+                      properties:
+                        lever:
+                          type: string
+                          description: Name of the lever, for example Spend 10% less.
+                        p_success_lifetime:
+                          type: number
+                          description: Probability savings last for life with this lever (0 to 1).
+                        change_pp:
+                          type: number
+                          description: Change versus the base case in percentage points.
+                  retirement_age_scan:
+                    type: array
+                    description: Probability of success for each retirement age from 60 to 70.
+                    items:
+                      type: object
+                      properties:
+                        ret_age:
+                          type: integer
+                          description: Retirement age.
+                        p_success_lifetime:
+                          type: number
+                          description: Probability savings last for life (0 to 1).
+                        p_success_to_95:
+                          type: number
+                          description: Probability savings last to age 95 (0 to 1).
                   assumptions:
+                    type: array
+                    items:
+                      type: string
                     description: Assumptions used by the simulation. State them to the user.
                   disclaimer:
+                    type: string
                     description: Mandatory disclaimer text. Quote it word for word.

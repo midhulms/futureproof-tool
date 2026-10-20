@@ -1,230 +1,80 @@
 openapi: 3.0.3
 info:
-  title: FutureProof Retirement Simulation (SAS Job Execution)
-  version: "3.0.0"
+  title: FutureProof Retirement Simulator
+  version: 1.0.0
   description: >
-    Runs the FutureProof Monte Carlo retirement engine (thousands of simulated lifetimes
-    using historical US market returns and SSA mortality data) for one person and
-    returns the probability that their savings last, plus a range of outcomes.
+    Runs the FutureProof Monte Carlo retirement simulation (SAS Job Execution)
+    and returns the probability that the user's savings last.
 servers:
   - url: https://viya-3tzzrqm1rj.engage.sas.com
 paths:
   /SASJobExecution/:
     get:
       operationId: run_retirement_simulation
-      summary: Probability that retirement savings last as long as the person lives
+      summary: Run the FutureProof Monte Carlo retirement simulation
       description: >
-        Use this tool whenever the user asks whether their retirement savings will
-        last, how likely they are to run out of money, what happens if they
-        spend more or less, retire earlier or later, or change their stock share.
-        Required: current savings (w0) and the retirement spending, given either as
-        a yearly amount (wd_amount) or a monthly amount (spend_month), in today's
-        dollars. Everything else is optional and has a default. Returns the
-        probability of success for the whole lifetime and to age 95, expected age at
-        death, wealth percentiles, the age by which 10% of simulations run out of
-        money, four alternative withdrawal levels, the assumptions used, and a
-        disclaimer. Always quote the disclaimer. Never estimate results yourself.
-        If the response has status "error", explain the message and ask the user to
-        correct the input. If the call itself fails, tell the user the simulation is
-        unavailable and give no numbers.
+        Use this tool whenever the user asks whether their retirement savings
+        will last, how likely they are to run out of money, or what happens if
+        they withdraw more or less each year. Returns the simulated probability
+        of success as JSON. Ask the user for any missing numeric input before
+        calling.
+      security:
+        - bearerAuth: []
       parameters:
         - name: _program
           in: query
           required: true
-          description: >
-            Internal job path. Always send exactly /Public/Mariangela/FPMC_agenticAI_job.
-            Never ask the user for it.
+          description: Fixed SAS job path. Do not change.
           schema:
             type: string
-            enum: ["/Public/Mariangela/FPMC_agenticAI_job"]
-            default: "/Public/Mariangela/FPMC_agenticAI_job"
+            enum:
+              - /Public/FutureProofAgent/FPMC_agenticAI_job_copy
+            default: /Public/FutureProofAgent/FPMC_agenticAI_job_copy
         - name: _output_type
           in: query
           required: true
-          description: Internal output format. Always send exactly json. Never ask the user for it.
+          description: Fixed output format. Do not change.
           schema:
             type: string
-            enum: ["json"]
-            default: "json"
-        - name: sso_guest
-          in: query
-          required: true
-          description: >
-            Internal flag that makes SAS run the job as the Guest user.
-            Always send exactly true. Never ask the user for it.
-          schema:
-            type: string
-            enum: ["true"]
-            default: "true"
+            enum: [json]
+            default: json
         - name: w0
           in: query
           required: true
-          description: >
-            Current total retirement savings in US dollars, as a plain number
-            without commas or symbols (example 135600).
+          description: Starting portfolio value in dollars (initial wealth).
           schema:
             type: number
-            minimum: 0
+            example: 135600
         - name: wd_amount
           in: query
-          required: false
-          description: >
-            Desired YEARLY spending or withdrawal once retired, in today's US dollars,
-            as a plain number (example 41000). Use this OR spend_month, not both.
+          required: true
+          description: Annual withdrawal amount in dollars.
           schema:
             type: number
-            minimum: 0
-        - name: spend_month
-          in: query
-          required: false
-          description: >
-            Desired MONTHLY spending once retired, in today's US dollars, as a plain
-            number (example 3420). Use this OR wd_amount, not both.
-          schema:
-            type: number
-            minimum: 0
-        - name: start_age
-          in: query
-          required: false
-          description: The person's current age in years. Default 40.
-          schema:
-            type: integer
-            default: 40
-            minimum: 18
-            maximum: 100
-        - name: sex
-          in: query
-          required: false
-          description: F or M. Selects the mortality table used to simulate lifespan. Default F.
-          schema:
-            type: string
-            enum: ["F", "M"]
-            default: "F"
-        - name: ret_age
-          in: query
-          required: false
-          description: Age at which withdrawals begin (retirement age). Default 65.
-          schema:
-            type: integer
-            default: 65
-            minimum: 40
-            maximum: 100
-        - name: eq_w
-          in: query
-          required: false
-          description: >
-            Share of the portfolio invested in stocks as a number from 0 to 1.
-            Example 0.6 means 60 percent stocks. Default 0.6.
-          schema:
-            type: number
-            default: 0.6
-            minimum: 0
-            maximum: 1
+            example: 41000
         - name: income
           in: query
-          required: false
-          description: >
-            Current gross yearly income in US dollars, used to estimate yearly savings
-            before retirement. Use 0 if unknown or already retired. Default 0.
+          required: true
+          description: Annual income in dollars.
           schema:
             type: number
-            default: 0
-            minimum: 0
-        - name: contrib
-          in: query
-          required: false
-          description: >
-            Fraction of income saved each year before retirement. Example 0.10 means
-            10 percent. Default 0.10.
-          schema:
-            type: number
-            default: 0.10
-            minimum: 0
-            maximum: 1
-        - name: contrib_month
-          in: query
-          required: false
-          description: >
-            Amount saved per MONTH before retirement, in US dollars (example 716).
-            CONFIRM the exact meaning with the job owner before relying on it.
-          schema:
-            type: number
-            minimum: 0
-        - name: contrib_growth
-          in: query
-          required: false
-          description: >
-            Yearly growth of the monthly saving. CONFIRM the exact meaning and units
-            with the job owner before relying on it.
-          schema:
-            type: number
-        - name: health
-          in: query
-          required: false
-          description: >
-            Health setting used to adjust mortality. CONFIRM the allowed values with
-            the job owner before relying on it.
-          schema:
-            type: string
-        - name: pension_month
-          in: query
-          required: false
-          description: >
-            Monthly pension or Social Security income in retirement, in today's US
-            dollars. CONFIRM the exact meaning with the job owner before relying on it.
-          schema:
-            type: number
-            minimum: 0
+            example: 85900
       responses:
         "200":
-          description: >
-            Simulation result (or an error message). The body is JSON. On success it
-            contains probability of success (lifetime and to age 95), expected age at
-            death, wealth percentiles, the age by which 10 percent of paths run out,
-            four alternative withdrawal levels, assumptions and a disclaimer. On bad
-            input it contains status "error" and a message.
+          description: Simulation result
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: true
-                properties:
-                  status:
-                    type: string
-                    description: '"ok" on success, "error" when inputs are missing or invalid.'
-                  message:
-                    type: string
-                    description: Present when status is "error". Explains what to fix.
-                  inputs:
-                    type: object
-                    additionalProperties: true
-                    description: Echo of the inputs actually used (including nsim and mort_adj).
-                  results:
-                    type: object
-                    description: Headline results. Probabilities are fractions from 0 to 1.
-                    properties:
-                      p_success_lifetime: {type: number, description: Probability savings last for life (0 to 1).}
-                      p_success_to_95: {type: number, description: Probability savings last to age 95 (0 to 1).}
-                      expected_age_at_death: {type: number, description: Expected age at death in years.}
-                      wealth_at_retirement_p10: {type: number, description: 10th percentile wealth at retirement in USD.}
-                      wealth_at_retirement_median: {type: number, description: Median wealth at retirement in USD.}
-                      wealth_at_retirement_p90: {type: number, description: 90th percentile wealth at retirement in USD.}
-                      withdrawal_rate_vs_median_wealth: {type: number, description: Yearly withdrawal divided by median wealth at retirement.}
-                      wealth_at_85_p10: {type: number, description: 10th percentile wealth at age 85 in USD.}
-                      wealth_at_85_median: {type: number, description: Median wealth at age 85 in USD.}
-                      wealth_at_95_p10: {type: number, description: 10th percentile wealth at age 95 in USD.}
-                      wealth_at_95_median: {type: number, description: Median wealth at age 95 in USD.}
-                      age_10pct_paths_run_out: {type: number, description: Age by which 10 percent of simulated paths have run out of money.}
-                  alternatives:
-                    type: array
-                    description: Four alternative withdrawals (80, 90, 100 and 110 percent of the chosen amount).
-                    items:
-                      type: object
-                      properties:
-                        wd_amount: {type: number, description: Alternative yearly withdrawal in USD.}
-                        p_success_lifetime: {type: number, description: Probability savings last for life (0 to 1).}
-                        p_success_to_95: {type: number, description: Probability savings last to age 95 (0 to 1).}
-                  assumptions:
-                    description: Assumptions used by the simulation. State them to the user.
-                  disclaimer:
-                    description: Mandatory disclaimer text. Quote it word for word.
+        "401":
+          description: Missing or expired token
+        "403":
+          description: Token valid but no permission on the job or folder
+        "404":
+          description: Job path not found
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
